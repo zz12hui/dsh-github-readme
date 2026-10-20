@@ -33,7 +33,9 @@
     "locale/*.json",
     "icon.svg",
     "scripts/*.py",
-    "references/*.md"
+    "references/*.md",
+    "references/*.json",
+    "skill/**"
   ],
   "dsh": {
     "bundle": {
