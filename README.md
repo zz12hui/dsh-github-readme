@@ -36,9 +36,30 @@
 | 流程 | 一段文字描述 | 过程图 + 编号步骤，两步一一对应 |
 | 推送前 | 直接 push | `readme_lint` + `deai_audit` 过了再 push |
 
-这个仓库自己的 README 就是这么生成的：banner 和下面第 3 节的过程图，都是 `readme_assets` 渲染的。
+这个仓库自己的 README 就是这么生成的：banner 和下面第 4 节的过程图，都是 `readme_assets` 渲染的。
 
-## 3. 优化流程
+## 3. 案例
+
+这两个仓库是真实用这套流程重做的，点进去可以直接对照：
+
+| [B 站视频总结](https://github.com/zz12hui/dsh-bili-video-summary) | [文案去 AI 味审计](https://github.com/zz12hui/dsh-deai-audit) |
+|---|---|
+| [![B 站视频总结 README 首图](./assets/readme/case-bili.png)](https://github.com/zz12hui/dsh-bili-video-summary) | [![文案去 AI 味审计 README 首图](./assets/readme/case-deai.png)](https://github.com/zz12hui/dsh-deai-audit) |
+
+改了什么：
+
+| 项目 | B 站视频总结 | 文案去 AI 味审计 |
+|---|---|---|
+| 优化前 | README 103 行，无首图、无过程图，章节没有编号 | README 59 行，无首图、无过程图，按功能平铺 |
+| 首图 | 蓝色主题，左栏「B 站链接 → 产出小卡」 | 绿色主题，左栏「文案 → 审计结果小卡」 |
+| 过程图 | 解析过程 5 步 + 产物条 + 隐私边界 | 审计过程 5 步 + 四档分数 + 设计取舍 |
+| 结构 | 11 个编号章节 + 工具/配置/耗时表 | 11 个编号章节 + 六维表 + 六文体权重表 |
+| 自检 | deai_audit 12.9 分（很自然） | deai_audit 20.8 分（方案汇报） |
+| commit | [772d868](https://github.com/zz12hui/dsh-bili-video-summary/commit/772d868) | [7191cdc](https://github.com/zz12hui/dsh-deai-audit/commit/7191cdc) |
+
+两个案例走的是同一套动作：扫描 → 重写结构 → 出图 → 排版校验 → 文案自检 → 推送。
+
+## 4. 优化流程
 
 ![优化流程：从仓库扫描到提交推送](./assets/readme/flow.png)
 
@@ -51,7 +72,7 @@
 5. **文案自检**（`deai_audit`）：六维打分 + 逐句打标，先看「标签式开头 / 空泛词 / 一眼 AI」三类，改完复检到 25 分以下。
 6. **提交推送**（`readme_publish`）：先 `dryRun` 看 diff stat，再正式 add → commit → push。
 
-## 4. 四个工具
+## 5. 四个工具
 
 | 工具 | 做什么 | 关键参数 |
 |---|---|---|
@@ -83,7 +104,7 @@
 }
 ```
 
-## 5. 默认规则：上传 GitHub 前自动走这套
+## 6. 默认规则：上传 GitHub 前自动走这套
 
 插件仓库里带了一份技能 `github-readme-optimize`（`skill/` 目录）。装好后，DSH 在遇到「上传 GitHub / 推仓库 / 发插件 / 优化 README」这类任务时会按这套流程执行。
 
@@ -98,7 +119,7 @@
 - 例外：用户明确说「先别改 README，直接推」。
 ```
 
-## 6. 快速开始
+## 7. 快速开始
 
 ### 6.1 前置条件
 
@@ -123,14 +144,14 @@ git clone https://github.com/zz12hui/dsh-github-readme.git
    ```
 
 3. 装技能（可选但推荐）：把仓库 `skill/` 下的内容复制到 `%USERPROFILE%\.dsh\skills\github-readme-optimize\`。
-4. 在 `~/.dsh/AGENTS.md` 末尾加上第 5 节的默认规则。
+4. 在 `~/.dsh/AGENTS.md` 末尾加上第 6 节的默认规则。
 5. **重启 DSH**（关闭窗口含托盘退出 → 重开 → 恢复会话）。插件和技能都在启动时加载，刷新页面不会加载它们。
 
 ### 6.3 验证
 
 重启后让助手「扫一下这个仓库的 README 情况」，应该看到 `readme_scan` 被调用；再让它「给这个仓库出首图和过程图」，应该调用 `readme_assets`。
 
-## 7. 素材规范
+## 8. 素材规范
 
 | 项 | 规范 |
 |---|---|
@@ -140,7 +161,7 @@ git clone https://github.com/zz12hui/dsh-github-readme.git
 | 图标 | `play` / `check` / `doc` / `branch` / `bolt` / `puzzle` 六种内置字形 |
 | 输出 | 一律 `assets/readme/banner.png`、`assets/readme/flow.png`，README 用相对路径引用 |
 
-## 8. 配置与目录
+## 9. 配置与目录
 
 | 变量 | 默认值 | 作用 |
 |---|---|---|
@@ -162,7 +183,7 @@ dsh-github-readme/
 └── package.json
 ```
 
-## 9. 设计取舍
+## 10. 设计取舍
 
 1. **扫描只读**：`readme_scan` 不改任何文件，克隆也落在 `~/.dsh/github-readme/repos`，不污染工作区。模型先拿事实，再动笔。
 2. **图片本地渲染**：不调在线设计工具，Pillow 直接画，2 倍超采样后缩小；字体用系统雅黑，中文不会变方块。
@@ -170,11 +191,11 @@ dsh-github-readme/
 4. **push 带退避重试**：本机访问 GitHub 时好时坏，网络类错误自动重试 3–4 次；认证类错误直接报错，不做无意义重试。
 5. **绝不 force push**：工具只做 `git add` / `commit` / `push origin HEAD:branch`，没有 `--force` 参数。
 
-## 10. 卸载与回滚
+## 11. 卸载与回滚
 
 删掉 `cordis.patch.yml` 末尾的 `github-readme-panel` 插入块和 `node_modules\dsh-local-github-readme` 目录；技能删掉 `~/.dsh/skills/github-readme-optimize`；`AGENTS.md` 里的默认规则按需删除。重启 DSH 后工具消失。数据目录 `~/.dsh/github-readme` 可保留（克隆缓存），也可整个删掉。
 
-## 11. 常见问题
+## 12. 常见问题
 
 **重启后工具没出现？** host 插件只在 DSH 启动时注册，必须关闭窗口含托盘退出再重开，刷新页面不算。
 
@@ -186,6 +207,6 @@ dsh-github-readme/
 
 **能新建 GitHub 仓库吗？** 不能。`readme_publish` 只推已有的 remote；新建仓库请在 GitHub 网页或 `gh` 里做。
 
-## 12. License
+## 13. License
 
 [MIT](./LICENSE) © 2026 zz12hui
