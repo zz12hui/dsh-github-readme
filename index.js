@@ -40,9 +40,23 @@ function pythonPath() {
   return process.platform === 'win32' ? 'python.exe' : 'python3';
 }
 
-function run(cmd, args, { cwd, timeoutMs = 60000, env } = {}) {
+function run(cmd, args, { cwd, timeoutMs = 60000, env, signal } = {}) {
   return new Promise((resolvePromise) => {
     let child;
+    let done = false;
+    let onAbort = null;
+    const finish = (value) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      if (signal && onAbort) signal.removeEventListener('abort', onAbort);
+      resolvePromise(value);
+    };
+    const abort = () => {
+      if (done) return;
+      try { child.kill(); } catch { /* ignore */ }
+      finish({ code: -1, stdout: '', stderr: 'aborted by host', aborted: true });
+    };
     try {
       child = spawn(cmd, args, {
         cwd,
@@ -50,42 +64,42 @@ function run(cmd, args, { cwd, timeoutMs = 60000, env } = {}) {
         env: { ...process.env, ...(env || {}) },
       });
     } catch (err) {
+      done = true;
       resolvePromise({ code: -1, stdout: '', stderr: String(err.message || err) });
       return;
     }
     let stdout = '';
     let stderr = '';
-    let done = false;
     const timer = setTimeout(() => {
       if (done) return;
-      done = true;
       try { child.kill(); } catch { /* ignore */ }
-      resolvePromise({ code: -1, stdout, stderr, timedOut: true });
+      finish({ code: -1, stdout, stderr, timedOut: true });
     }, timeoutMs);
     child.stdout.on('data', (b) => { stdout += b.toString('utf8'); });
-    child.stderr.on('data', (b) => { stderr += b.toString('utf8'); });
-    child.on('error', (err) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      resolvePromise({ code: -1, stdout, stderr: String(err.message || err) });
+    child.stderr.on('data', (b) => {
+      stderr += b.toString('utf8');
+      if (stderr.length > 20000) stderr = stderr.slice(-20000);
     });
-    child.on('close', (code) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      resolvePromise({ code, stdout, stderr });
-    });
+    child.on('error', (err) => finish({ code: -1, stdout, stderr: String(err.message || err) }));
+    child.on('close', (code) => finish({ code, stdout, stderr }));
+    if (signal) {
+      if (signal.aborted) {
+        abort();
+      } else {
+        onAbort = abort;
+        signal.addEventListener('abort', onAbort, { once: true });
+      }
+    }
   });
 }
 
-async function runPython(args, timeoutMs = 180000, cwd) {
+async function runPython(args, timeoutMs = 180000, cwd, signal) {
   const py = pythonPath();
   if (py.includes('python') && !existsSync(py) && py !== 'python.exe' && py !== 'python3') {
     throw new Error(`找不到 Python 解释器：${py}（可用 GITHUB_README_PYTHON 指定）`);
   }
   if (!existsSync(SCRIPT_ASSETS)) throw new Error(`渲染脚本缺失：${SCRIPT_ASSETS}`);
-  const r = await run(py, [SCRIPT_ASSETS, ...args], { cwd: cwd || DATA_HOME, timeoutMs });
+  const r = await run(py, [SCRIPT_ASSETS, ...args], { cwd: cwd || DATA_HOME, timeoutMs, signal });
   return r;
 }
 
@@ -235,15 +249,15 @@ function parseReadmeFacts(readmePath, root) {
   };
 }
 
-async function gitInfo(root) {
+async function gitInfo(root, signal) {
   const info = {};
-  const remote = await run('git', ['-C', root, 'remote', 'get-url', 'origin'], { timeoutMs: 15000 });
+  const remote = await run('git', ['-C', root, 'remote', 'get-url', 'origin'], { timeoutMs: 15000, signal });
   if (remote.code === 0) info.remote = remote.stdout.trim();
-  const branch = await run('git', ['-C', root, 'rev-parse', '--abbrev-ref', 'HEAD'], { timeoutMs: 15000 });
+  const branch = await run('git', ['-C', root, 'rev-parse', '--abbrev-ref', 'HEAD'], { timeoutMs: 15000, signal });
   if (branch.code === 0) info.branch = branch.stdout.trim();
-  const log = await run('git', ['-C', root, 'log', '--oneline', '-5'], { timeoutMs: 15000 });
+  const log = await run('git', ['-C', root, 'log', '--oneline', '-5'], { timeoutMs: 15000, signal });
   if (log.code === 0) info.recentCommits = log.stdout.trim().split(/\r?\n/).filter(Boolean);
-  const status = await run('git', ['-C', root, 'status', '--porcelain'], { timeoutMs: 15000 });
+  const status = await run('git', ['-C', root, 'status', '--porcelain'], { timeoutMs: 15000, signal });
   if (status.code === 0) {
     const lines = status.stdout.trim().split(/\r?\n/).filter(Boolean);
     info.dirty = lines.length > 0;
@@ -252,7 +266,7 @@ async function gitInfo(root) {
   return info;
 }
 
-async function cloneRepo(url) {
+async function cloneRepo(url, signal) {
   const m = /github\.com[/:]([^/]+)\/([^/.]+?)(?:\.git)?\/?$/.exec(url.trim());
   if (!m) throw new Error(`无法识别 GitHub 仓库地址：${url}`);
   const owner = m[1];
@@ -260,13 +274,13 @@ async function cloneRepo(url) {
   const target = join(REPOS_DIR, `${owner}__${repo}`);
   mkdirSync(REPOS_DIR, { recursive: true });
   if (existsSync(join(target, '.git'))) {
-    const pull = await run('git', ['-C', target, 'fetch', '--depth', '1', 'origin'], { timeoutMs: 120000 });
+    const pull = await run('git', ['-C', target, 'fetch', '--depth', '1', 'origin'], { timeoutMs: 120000, signal });
     return { repoRoot: target, cloned: false, fetched: pull.code === 0, url: `https://github.com/${owner}/${repo}` };
   }
   const tmp = `${target}.tmp-${Date.now()}`;
   let lastErr = '';
   for (let attempt = 1; attempt <= 3; attempt += 1) {
-    const r = await run('git', ['clone', '--depth', '1', url, tmp], { timeoutMs: 180000 });
+    const r = await run('git', ['clone', '--depth', '1', url, tmp], { timeoutMs: 180000, signal });
     if (r.code === 0) {
       try {
         if (existsSync(target)) {
@@ -287,11 +301,11 @@ async function cloneRepo(url) {
   throw new Error(`clone 失败（重试 3 次）：${lastErr}`);
 }
 
-async function scanRepo({ path: localPath, url }) {
+async function scanRepo({ path: localPath, url }, signal) {
   let repoRoot;
   let cloneMeta = null;
   if (url) {
-    cloneMeta = await cloneRepo(url);
+    cloneMeta = await cloneRepo(url, signal);
     repoRoot = cloneMeta.repoRoot;
   } else if (localPath) {
     repoRoot = resolve(localPath);
@@ -328,7 +342,7 @@ async function scanRepo({ path: localPath, url }) {
     files: { total: files.length, byExt: Object.entries(extCount).sort((a, b) => b[1] - a[1]).slice(0, 12) },
     images: collectImages(repoRoot, 3),
     envVars: findEnvVars(repoRoot, files),
-    git: await gitInfo(repoRoot),
+    git: await gitInfo(repoRoot, signal),
     suggested: {
       readmePath,
       assetsDir: join(repoRoot, 'assets', 'readme'),
@@ -556,15 +570,15 @@ function lintReadme({ path: p, required }) {
 const NETWORK_HINTS = /(could not resolve|failed to connect|connection (reset|timed out)|timed out|network is unreachable|unable to access|early eof|rpc failed)/i;
 const AUTH_HINTS = /(authentication failed|could not read username|permission denied|403 forbidden|invalid username or password)/i;
 
-async function publish({ path: p, message, branch, files, dryRun, retries }) {
+async function publish({ path: p, message, branch, files, dryRun, retries }, signal) {
   const root = resolve(p);
   if (!existsSync(join(root, '.git'))) throw new Error(`不是 git 仓库：${root}`);
   if (!message) throw new Error('message 不能为空');
-  const status = await run('git', ['-C', root, 'status', '--porcelain'], { timeoutMs: 30000 });
+  const status = await run('git', ['-C', root, 'status', '--porcelain'], { timeoutMs: 30000, signal });
   if (status.code !== 0) throw new Error(`git status 失败：${status.stderr.trim()}`);
   const statusText = status.stdout.trim();
   if (dryRun) {
-    const diff = await run('git', ['-C', root, 'diff', '--stat'], { timeoutMs: 30000 });
+    const diff = await run('git', ['-C', root, 'diff', '--stat'], { timeoutMs: 30000, signal });
     return {
       ok: true,
       dryRun: true,
@@ -580,20 +594,20 @@ async function publish({ path: p, message, branch, files, dryRun, retries }) {
   } else {
     addArgs = ['-C', root, 'add', '-A'];
   }
-  const add = await run('git', addArgs, { timeoutMs: 60000 });
+  const add = await run('git', addArgs, { timeoutMs: 60000, signal });
   if (add.code !== 0) throw new Error(`git add 失败：${add.stderr.trim()}`);
-  const staged = await run('git', ['-C', root, 'diff', '--cached', '--name-only'], { timeoutMs: 30000 });
+  const staged = await run('git', ['-C', root, 'diff', '--cached', '--name-only'], { timeoutMs: 30000, signal });
   const stagedFiles = staged.stdout.trim().split(/\r?\n/).filter(Boolean);
   if (stagedFiles.length === 0) {
     return { ok: true, repoRoot: root, nothingToCommit: true, branch: branch || '', message };
   }
-  const commit = await run('git', ['-C', root, 'commit', '-m', message], { timeoutMs: 60000 });
+  const commit = await run('git', ['-C', root, 'commit', '-m', message], { timeoutMs: 60000, signal });
   if (commit.code !== 0) {
     throw new Error(`git commit 失败：${commit.stderr.trim() || commit.stdout.trim()}`);
   }
   const branchName = branch
-    || (await run('git', ['-C', root, 'rev-parse', '--abbrev-ref', 'HEAD'], { timeoutMs: 15000 })).stdout.trim();
-  const remote = (await run('git', ['-C', root, 'remote', 'get-url', 'origin'], { timeoutMs: 15000 })).stdout.trim();
+    || (await run('git', ['-C', root, 'rev-parse', '--abbrev-ref', 'HEAD'], { timeoutMs: 15000, signal })).stdout.trim();
+  const remote = (await run('git', ['-C', root, 'remote', 'get-url', 'origin'], { timeoutMs: 15000, signal })).stdout.trim();
   const maxAttempts = Math.max(1, Math.min(8, Number(retries) || 4));
   let attempts = 0;
   let lastErr = '';
@@ -603,6 +617,7 @@ async function publish({ path: p, message, branch, files, dryRun, retries }) {
     const r = await run('git', ['-C', root, 'push', 'origin', `HEAD:${branchName}`], {
       timeoutMs: 180000,
       env: { GIT_TERMINAL_PROMPT: '0' },
+      signal,
     });
     if (r.code === 0) {
       pushed = true;
@@ -613,7 +628,7 @@ async function publish({ path: p, message, branch, files, dryRun, retries }) {
     if (!NETWORK_HINTS.test(lastErr) && r.code !== -1) break;
     await new Promise((res) => setTimeout(res, i * 5000));
   }
-  const head = await run('git', ['-C', root, 'rev-parse', '--short', 'HEAD'], { timeoutMs: 15000 });
+  const head = await run('git', ['-C', root, 'rev-parse', '--short', 'HEAD'], { timeoutMs: 15000, signal });
   return {
     ok: pushed,
     repoRoot: root,
@@ -637,9 +652,10 @@ export function apply(ctx) {
       + 'Read-only. Use it before rewriting a README or generating README assets. '
       + 'For a GitHub URL it does a shallow clone into ~/.dsh/github-readme/repos.',
     parameters: SCAN_PARAMS,
+    timeoutMs: 600000,
     output: { schema: { type: 'object', additionalProperties: true }, render: renderScan },
-    async execute(args) {
-      return scanRepo(args || {});
+    async execute(args, exec) {
+      return scanRepo(args || {}, exec?.signal);
     },
   });
 
@@ -652,15 +668,16 @@ export function apply(ctx) {
       + 'Plan supports theme (blue/green/violet/orange), banner {title, mono, headline, bullets, chips, note, icon, leftTop, leftCard, leftCaption, footerLeft, footerRight} '
       + 'and flow {title, subtitle, badge, steps[{title,tag,desc}], products[{name,detail,color}], highlight{title,text}, footerLeft, footerRight}.',
     parameters: ASSETS_PARAMS,
+    timeoutMs: 240000,
     output: { schema: { type: 'object', additionalProperties: true }, render: renderAssets },
-    async execute(args) {
+    async execute(args, exec) {
       const plan = (args && args.plan) || {};
       if (!plan.outDir) throw new Error('plan.outDir 不能为空');
       mkdirSync(WORK_DIR, { recursive: true });
       mkdirSync(plan.outDir, { recursive: true });
       const planFile = join(WORK_DIR, `assets-${Date.now()}.json`);
       writeFileSync(planFile, JSON.stringify(plan, null, 2), 'utf8');
-      const r = await runPython(['--plan-file', planFile], 180000, DATA_HOME);
+      const r = await runPython(['--plan-file', planFile], 180000, DATA_HOME, exec?.signal);
       const parsed = lastResultJson(r.stdout);
       if (!parsed) {
         throw new Error(`渲染脚本没有返回结果（exit ${r.code}）：${(r.stderr || r.stdout).trim().split(/\r?\n/).slice(-5).join(' ')}`);
@@ -677,6 +694,8 @@ export function apply(ctx) {
       + 'tables have separator rows, required section keywords exist, and a banner image is present. '
       + 'Returns errors (must fix) and warnings (should fix). Accepts a README.md path or a repo root directory.',
     parameters: LINT_PARAMS,
+    timeoutMs: 60000,
+    isConcurrencySafe: () => true,
     output: { schema: { type: 'object', additionalProperties: true }, render: renderLint },
     async execute(args) {
       return lintReadme(args || {});
@@ -690,9 +709,10 @@ export function apply(ctx) {
       + 'on network failures (never force push). Use it after README/assets changes have been checked (readme_lint + deai audit). '
       + 'Set dryRun:true to preview status and diff stat first. Returns commit hash, pushed flag, attempts and last error.',
     parameters: PUBLISH_PARAMS,
+    timeoutMs: 900000,
     output: { schema: { type: 'object', additionalProperties: true }, render: renderPublish },
-    async execute(args) {
-      return publish(args || {});
+    async execute(args, exec) {
+      return publish(args || {}, exec?.signal);
     },
   });
 }
