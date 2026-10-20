@@ -53,6 +53,7 @@ description: Use when uploading/pushing anything to GitHub, creating a repo, pub
 
 - host 插件和技能都只在 DSH **启动时**加载：装完/更新后必须重启（含托盘退出），刷新页面不算。
 - Consolas 等英文字体没有中文字形，中英混排不要用 mono，否则变方块。
+- 通过 GitHub API 建仓库 / 改仓库信息时，中文 description 要用 **UTF-8 字节**发送（`-Body ([Text.Encoding]::UTF8.GetBytes($json))`）；用默认编码会把中文写成 `?`，README 和代码不受影响，只是 About 简介乱码。
 - flow 标题太长会和右上角标签打架；渲染器会自动缩字号，但标题尽量 ≤ 26 字。
 - `readme_lint` 报「章节编号不连续」时，先看是不是把 TOC 或「## 2.1」当成了编号章节。
 - 推送失败：认证错误（403 / could not read username）不重试；网络错误（failed to connect / timeout）脚本会退避 3–4 次。
