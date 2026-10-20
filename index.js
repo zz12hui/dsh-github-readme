@@ -370,8 +370,9 @@ const ASSETS_PARAMS = {
       type: 'object',
       additionalProperties: true,
       description:
-        '渲染计划。必填 outDir；可给 theme(blue|green|violet|orange)、banner、flow。'
-        + 'banner 支持 title/mono/headline/bullets/chips/note/icon/leftTop/leftCard/leftCaption/footerLeft/footerRight；'
+        '渲染计划。必填 outDir；可选 style（10 种首图风格 split/band/topbar/diagonal/center/terminal/editorial/cards/wave/minimal，省略则随机）、'
+        + 'palette（ocean/emerald/violet/amber/rose/cyan/indigo/slate/lime/sunset，省略则按风格随机）、seed（固定随机组合）、'
+        + 'theme（旧字段兼容）、banner、flow。banner 支持 title/mono/headline/bullets/chips/note/icon/leftTop/leftCard/leftCaption/footerLeft/footerRight；'
         + 'flow 支持 title/subtitle/badge/steps(title,tag,desc)/products(name,detail,color)/productsTitle/highlight/footerLeft/footerRight。',
     },
   },
@@ -428,6 +429,9 @@ function renderScan(_args, v) {
 function renderAssets(_args, v) {
   const lines = ['已生成素材：'];
   for (const img of v.images) lines.push(`  ${img.kind}: ${img.path}（${Math.round(img.bytes / 1024)} KB）`);
+  if (v.banner) {
+    lines.push(`首图：风格 ${v.banner.style}（${v.banner.styleName}）· 配色 ${v.banner.palette} · seed ${v.banner.seed}${v.banner.random ? '（随机）' : ''}`);
+  }
   lines.push('README 里用相对路径引用，例如 assets/readme/banner.png。');
   return [{ type: 'text', text: lines.join('\n') }];
 }
@@ -663,10 +667,13 @@ export function apply(ctx) {
     name: 'readme_assets',
     description:
       'Render README assets (banner 1200×600 and/or process flow diagram, auto height) from a structured plan, '
-      + 'using Pillow with 2x supersampling. Writes PNGs into plan.outDir (usually <repo>/assets/readme). '
-      + 'Reference them from README with relative paths like assets/readme/banner.png. '
-      + 'Plan supports theme (blue/green/violet/orange), banner {title, mono, headline, bullets, chips, note, icon, leftTop, leftCard, leftCaption, footerLeft, footerRight} '
-      + 'and flow {title, subtitle, badge, steps[{title,tag,desc}], products[{name,detail,color}], highlight{title,text}, footerLeft, footerRight}.',
+      + 'using Pillow with 2x supersampling. 10 banner styles are built in (split / band / topbar / diagonal / center / '
+      + 'terminal / editorial / cards / wave / minimal) with 10 palettes (ocean / emerald / violet / amber / rose / cyan / '
+      + 'indigo / slate / lime / sunset); if plan.style or plan.palette is omitted they are picked at random, and plan.seed '
+      + 'reproduces the same combination. Writes PNGs into plan.outDir (usually <repo>/assets/readme); the result reports the '
+      + 'style/palette/seed actually used. Reference images from README with relative paths like assets/readme/banner.png. '
+      + 'Plan banner fields: title, mono, headline, bullets, chips, note, icon, leftTop, leftCard, leftCaption, footerLeft, footerRight; '
+      + 'flow fields: title, subtitle, badge, steps[{title,tag,desc}], products[{name,detail,color}], highlight{title,text}, footerLeft, footerRight.',
     parameters: ASSETS_PARAMS,
     timeoutMs: 240000,
     output: { schema: { type: 'object', additionalProperties: true }, render: renderAssets },

@@ -67,7 +67,7 @@
 
 1. **扫描仓库**（`readme_scan`）：读 package.json、README、两层目录树、现有图片、代码里的环境变量、git remote/分支/改动。只读，不改任何文件。
 2. **重写结构**：按 [`references/README-模板.md`](./references/README-模板.md) 的编号骨架填内容；不适用的小节删掉，编号保持连续。
-3. **生成素材**（`readme_assets`）：给一份 plan，渲染 `banner.png` 和 `flow.png` 到 `assets/readme/`。图片是 2 倍超采样后缩放的，中文用微软雅黑，避免糊。
+3. **生成素材**（`readme_assets`）：给一份 plan，渲染 `banner.png` 和 `flow.png` 到 `assets/readme/`。首图有 10 种风格、每种 5–6 套配色，不指定就随机组合；图片是 2 倍超采样后缩放的，中文用微软雅黑，避免糊。
 4. **排版校验**（`readme_lint`）：查图片/相对链接是否存在、`## N.` 编号是否连续、表格有没有 `|---|` 分隔行、必需章节和首图是否齐全。
 5. **文案自检**（`deai_audit`）：六维打分 + 逐句打标，先看「标签式开头 / 空泛词 / 一眼 AI」三类，改完复检到 25 分以下。
 6. **提交推送**（`readme_publish`）：先 `dryRun` 看 diff stat，再正式 add → commit → push。
@@ -77,7 +77,7 @@
 | 工具 | 做什么 | 关键参数 |
 |---|---|---|
 | `readme_scan` | 扫描仓库事实，给写 README 用 | `path`（本地仓库）或 `url`（GitHub 地址，会浅克隆） |
-| `readme_assets` | 渲染首图 / 过程图 | `plan`（必含 `outDir`；`theme`、`banner`、`flow` 见下） |
+| `readme_assets` | 渲染首图 / 过程图（10 种首图风格，随机配色） | `plan`（必含 `outDir`；`style`、`palette`、`seed`、`banner`、`flow` 见下） |
 | `readme_lint` | README 排版体检 | `path`（README.md 或仓库根）；`required`（必需章节关键词） |
 | `readme_publish` | commit + push（带重试） | `path`、`message`；可选 `branch`、`files`、`dryRun`、`retries` |
 
@@ -86,7 +86,9 @@
 ```json
 {
   "outDir": "<仓库根>/assets/readme",
-  "theme": "violet",
+  "style": "split",
+  "palette": "violet",
+  "seed": 42,
   "banner": {
     "title": "GitHub 仓库 README 优化",
     "mono": "dsh-github-readme",
@@ -103,6 +105,8 @@
   }
 }
 ```
+
+`style` / `palette` / `seed` 都可以省：省掉 style 就随机风格，省掉 palette 就在该风格的配色里随机，seed 用来复现同一张图。
 
 ## 6. 默认规则：上传 GitHub 前自动走这套
 
@@ -153,13 +157,35 @@ git clone https://github.com/zz12hui/dsh-github-readme.git
 
 ## 8. 素材规范
 
+首图有 10 种风格，每种自带 5–6 套配色；调用时不指定 `style` / `palette` 就随机组合，返回里会带上实际用的 `style`、`palette`、`seed`，用同一个 `seed` 能复现同一张图。
+
+![10 种首图风格总览](./assets/readme/style-gallery.png)
+
+| # | 风格 id | 名称 | 适合 |
+|---|---|---|---|
+| 01 | `split` | 经典分栏 | 通用款，左栏图标 + 小卡，右栏标题与卖点 |
+| 02 | `band` | 左侧色带 | 工具类，左栏列文件清单 |
+| 03 | `topbar` | 顶部横幅 | 内容多，卖点拆成三张卡片 |
+| 04 | `diagonal` | 对角色块 | 想要强视觉记忆点 |
+| 05 | `center` | 居中构图 | 品牌型项目，图标标题居中 |
+| 06 | `terminal` | 终端窗口 | 开发者工具 / CLI |
+| 07 | `editorial` | 杂志编辑 | 文档型项目，大标题 + 编号条目 |
+| 08 | `cards` | 卡片网格 | 信息多，四格各管一摊 |
+| 09 | `wave` | 波浪渐变 | 偏产品 / 创意 |
+| 10 | `minimal` | 极简留白 | 标题是主角，克制 |
+
+配色 10 套：`ocean` 蓝 / `emerald` 绿 / `violet` 紫 / `amber` 琥珀 / `rose` 玫红 / `cyan` 青 / `indigo` 靛蓝 / `slate` 石板灰 / `lime` 青柠 / `sunset` 落日橙。
+
 | 项 | 规范 |
 |---|---|
-| 首图 | 1200×600 PNG，左栏图标 + 小卡，右栏标题 / bullet / chips |
-| 过程图 | 宽 1200，高度按步骤数自适应（3–6 步），可带产物条和提示条 |
-| 主题 | `blue` / `green` / `violet` / `orange`，相邻项目换色区分 |
+| 首图 | 1200×600 PNG；10 种风格，每种 5–6 套配色；默认随机 |
+| 随机规则 | 不传 `style` → 随机风格；不传 `palette` → 该风格可选配色里随机；`seed` 固定组合 |
+| 过程图 | 宽 1200，高度随步骤数自适应（3–6 步），配色跟随同一套 palette |
+| 旧字段兼容 | `theme`（blue/green/violet/orange）自动映射到对应配色 |
 | 图标 | `play` / `check` / `doc` / `branch` / `bolt` / `puzzle` 六种内置字形 |
-| 输出 | 一律 `assets/readme/banner.png`、`assets/readme/flow.png`，README 用相对路径引用 |
+| 输出 | `assets/readme/banner.png`、`flow.png`，README 用相对路径引用 |
+
+换风格后想看看全部效果，直接跑渲染器：`--gallery out.png` 出总览图，`--list-styles` 打印风格与配色清单。
 
 ## 9. 配置与目录
 
@@ -204,6 +230,8 @@ dsh-github-readme/
 **push 一直失败？** 看 `readme_publish` 返回的 `error`：认证问题先确认本机 git 凭据（`git push` 能推才行）；网络问题会自动重试，仍失败就手动重跑。
 
 **首图上的标题被截断？** 渲染器会自动缩字号，但标题最好控制在 12 个汉字以内；长标题改成短标题 + 副标题。
+
+**想固定首图风格？** plan 里传 `style` + `palette`（可选 `seed`），返回值会带上实际使用的组合；不传就每次随机，适合一仓一图不重样。
 
 **能新建 GitHub 仓库吗？** 不能。`readme_publish` 只推已有的 remote；新建仓库请在 GitHub 网页或 `gh` 里做。
 

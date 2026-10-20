@@ -1,6 +1,8 @@
 {
   "outDir": "<仓库根>/assets/readme",
-  "theme": "violet",
+  "style": "split",
+  "palette": "violet",
+  "seed": 42,
   "banner": {
     "icon": "doc",
     "leftTop": "<左栏标题，例如：一个仓库 / 一个链接>",

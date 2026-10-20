@@ -44,10 +44,12 @@ description: Use when uploading/pushing anything to GitHub, creating a repo, pub
 
 ## 图片规范
 
-- banner：1200×600；左栏图标 + 小卡，右栏标题、卖点 bullet、标签 chips。
-- flow：1200 宽、高度自适应；3–6 步，每步「标题 + 标签 + 一句说明」，最后可带产物条和提示条。
-- 主题四选一，相邻项目换色区分；图标 glyph 可选 `play / check / doc / branch / bolt / puzzle`。
-- 图片一律放 `assets/readme/`，README 用相对路径引用；仓库里已有 `docs/` 示例图就保留引用。
+- banner：1200×600，内置 10 种风格：`split` 经典分栏 / `band` 左侧色带 / `topbar` 顶部横幅 / `diagonal` 对角色块 / `center` 居中 / `terminal` 终端 / `editorial` 杂志 / `cards` 卡片 / `wave` 波浪 / `minimal` 极简。
+- 配色 10 套：ocean / emerald / violet / amber / rose / cyan / indigo / slate / lime / sunset，每种风格限定 5–6 套可选。
+- **默认随机**：不传 `style` 随机风格，不传 `palette` 在该风格配色里随机；要把一张图固定下来，传 `style` + `palette`，需要复现时再加 `seed`（工具返回里会带实际组合与 seed）。
+- flow：1200 宽、高度自适应；3–6 步，每步「标题 + 标签 + 一句说明」，最后可带产物条和提示条；配色跟随 banner 的 palette。
+- 图标 glyph 可选 `play / check / doc / branch / bolt / puzzle`；图片一律放 `assets/readme/`，README 用相对路径引用；已有 `docs/` 示例图保留。
+- 想看全部风格：`python scripts/render_readme_assets.py --gallery out.png`；列出风格与配色：`--list-styles`。
 
 ## 常见坑
 
