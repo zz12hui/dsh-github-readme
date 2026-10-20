@@ -1,6 +1,6 @@
 ---
 name: github-readme-optimize
-description: Use when uploading/pushing anything to GitHub, creating a repo, publishing a plugin, or optimizing a README（上传 GitHub / 推仓库 / 发仓库 / 优化 README / 排版 / 加首图 / 加过程图）. Rewrites README into DSH-Market style: banner + process diagram + numbered sections + tables; renders assets with readme_assets, checks layout with readme_lint, self-audits copy with deai_audit, commits and pushes with readme_publish.
+description: Use when uploading/pushing anything to GitHub, creating a repo, publishing a plugin, or optimizing a README（上传 GitHub / 推仓库 / 发仓库 / 优化 README / 排版 / 加首图 / 加过程图）. Rewrites README into DSH-Market style — banner + process diagram + numbered sections + tables; renders assets with readme_assets, checks layout with readme_lint, self-audits copy with deai_audit, commits and pushes with readme_publish.
 ---
 
 # GitHub 仓库 README 优化（github-readme-optimize）
