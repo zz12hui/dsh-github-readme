@@ -1,0 +1,3 @@
+- insert:
+    - id: github-readme-panel
+      name: 'dsh-local-github-readme'

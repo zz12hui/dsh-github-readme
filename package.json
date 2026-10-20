@@ -1,0 +1,43 @@
+{
+  "name": "dsh-local-github-readme",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DSH 工具插件：上传 GitHub 前把仓库 README 按统一版式优化——首图/过程图生成、排版校验、提交推送。",
+  "author": "zz12hui",
+  "license": "MIT",
+  "homepage": "https://github.com/zz12hui/dsh-github-readme#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zz12hui/dsh-github-readme.git"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "readme",
+    "banner",
+    "infographic",
+    "github",
+    "automation"
+  ],
+  "exports": {
+    ".": "./index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "scripts/*.py",
+    "references/*.md"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "outDir": "<仓库根>/assets/readme",
+  "theme": "violet",
+  "banner": {
+    "icon": "doc",
+    "leftTop": "<左栏标题，例如：一个仓库 / 一个链接>",
+    "leftCard": {
+      "title": "<卡片标题>",
+      "label": "<卡片副标题>",
+      "chips": ["<标签1>", "<标签2>", "<标签3>"],
+      "foot": "assets/readme/ · 相对路径引用"
+    },
+    "leftCaption": "<左栏底部一句>",
+    "eyebrow": "DEEPSEEK HARNESS · DSH 插件",
+    "title": "<项目中文名，建议 ≤ 12 字>",
+    "mono": "<英文包名 / 仓库名>",
+    "headline": "<一句主张，写清它替用户省了什么>",
+    "bullets": [
+      "<卖点 1：带数字或可验证行为>",
+      "<卖点 2>",
+      "<卖点 3>"
+    ],
+    "chips": [
+      { "text": "<标签1>" },
+      { "text": "<标签2>", "color": "blue" },
+      { "text": "<标签3>" }
+    ],
+    "note": "<工具名 / 安装命令 / 一句备注>",
+    "footerLeft": "<版权或定位>",
+    "footerRight": "<github.com/owner/repo>"
+  },
+  "flow": {
+    "title": "<过程标题：一个 X 怎么变成 Y>",
+    "subtitle": "<N 个步骤：A → B → C → D>",
+    "badge": "<右上角标签，例如：全部在本机完成>",
+    "steps": [
+      { "title": "<步骤1>", "tag": "<工具/标签>", "desc": "<这一步做什么、调什么、产出什么>" },
+      { "title": "<步骤2>", "tag": "<工具/标签>", "desc": "<...>" },
+      { "title": "<步骤3>", "tag": "<工具/标签>", "desc": "<...>" }
+    ],
+    "productsTitle": "产物（都落在仓库里）",
+    "products": [
+      { "name": "<产物1>", "detail": "<说明>", "color": "violet" },
+      { "name": "<产物2>", "detail": "<说明>", "color": "blue" },
+      { "name": "<产物3>", "detail": "<说明>", "color": "green" }
+    ],
+    "highlight": {
+      "title": "<提示条标题，例如：硬性规则>",
+      "text": "<一条最重要的约束或说明>"
+    },
+    "footerLeft": "<限制说明，例如：扫描只读；推送只 add 指定文件>",
+    "footerRight": "<工具名列表>"
+  }
+}

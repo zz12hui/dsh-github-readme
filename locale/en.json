@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "GitHub README Optimizer",
+    "description": "Optimize a repo README before pushing to GitHub: banner / process diagram rendering, layout lint, commit and push."
+  }
+}
