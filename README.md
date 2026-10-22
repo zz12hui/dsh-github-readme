@@ -134,6 +134,19 @@
 
 ### 6.2 安装插件
 
+命令行走 profile 的插件管理器安装（DSH 桌面版一般用 `desktop`，dsh web 用 `web`）：
+
+```bash
+dsh plugin --profile desktop add github:zz12hui/dsh-github-readme
+```
+
+> DSH 桌面版正在运行时，命令行不会改应用的 profile：先退出桌面版再执行，或等上架后在市场里一键安装。
+
+装完**重启 DSH**（关闭窗口含托盘退出 → 重开 → 恢复会话）。想让「上传 GitHub 前默认优化 README」对所有会话生效，再装技能、加 AGENTS.md 规则，见下面第 3、4 条。
+
+<details>
+<summary>手动安装（旧版 / 离线环境）</summary>
+
 ```bash
 git clone https://github.com/zz12hui/dsh-github-readme.git
 ```
@@ -147,9 +160,11 @@ git clone https://github.com/zz12hui/dsh-github-readme.git
          name: 'dsh-local-github-readme'
    ```
 
-3. 装技能（可选但推荐）：把仓库 `skill/` 下的内容复制到 `%USERPROFILE%\.dsh\skills\github-readme-optimize\`。
+3. 装技能（可选但推荐）：把 `skill/` 下的内容复制到 `%USERPROFILE%\.dsh\skills\github-readme-optimize\`；用 `dsh plugin add` 装的，`skill/` 在 `%USERPROFILE%\.dsh\profiles\desktop\node_modules\dsh-local-github-readme\skill\`。
 4. 在 `~/.dsh/AGENTS.md` 末尾加上第 6 节的默认规则。
 5. **重启 DSH**（关闭窗口含托盘退出 → 重开 → 恢复会话）。插件和技能都在启动时加载，刷新页面不会加载它们。
+
+</details>
 
 ### 6.3 验证
 
